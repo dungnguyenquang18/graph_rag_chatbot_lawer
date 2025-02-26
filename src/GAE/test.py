@@ -75,10 +75,10 @@ def find_closest_entities(entities, node_mapping):
     return results
 
 
-if __name__ == '__main__':
-    model = Model()
-    query = "hãy nêu điều 2 khoản 1 luật đất đai"
-    entities, _ = model.process_llm_out(query)
+
+llm = Model()
+query = "hãy nêu điều 2 khoản 1 luật đất đai"
+entities, _ = llm.process_llm_out(query)
     
     
 # Input: List of entities extracted from the query
@@ -92,9 +92,9 @@ for query_entity, match_id, match_name, score in matches:
     print(f"Query: '{query_entity}' -> Match: '{match_name}' (Node ID: {match_id}) with score {score:.2f}")
 
 # Step 2: Use embeddings to find similar nodes for each matched entity
-gae.eval()
+model.eval()
 with torch.no_grad():
-    embeddings, _ = gae(train_data.x, train_data.edge_index)
+    embeddings, _ = model(train_data.x, train_data.edge_index)
 
 # Normalize node embeddings
 node_embeddings_norm = F.normalize(embeddings, p=2, dim=1)
