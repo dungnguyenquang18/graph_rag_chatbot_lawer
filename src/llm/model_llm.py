@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-class Model():
+class LLM():
     def __init__(self):
         # Thay thế bằng API Key của bạn
         self.API_KEY = os.getenv('API_KEY')
@@ -38,16 +38,14 @@ class Model():
         for _ in range(5):  # Gửi 5 request
             try:
                 response = self.answer(prompt)
-                return response
+                return self.process_llm_out(response)
             except Exception as e:
                 print(f"Lỗi: {e}")
                 time.sleep(20)  # Chờ 10 giây trước khi thử lại
         
+        return 'lỗi api'
 
-        # In kết quả
-        return self.__process_llm_out(response)
-
-    def __process_llm_out(self, response):
+    def process_llm_out(self, response):
         
 
         # Extract entities
@@ -75,6 +73,7 @@ class Model():
     
 
 if __name__ == '__main__':
-    model = Model()
-    query = 'ca sỹ hoàng dũng quê ở đâu?'
-    print(model.answer(query))
+    model = LLM()
+    query = 'hãy nêu điều 2 khoản 1 luật đất đai'
+    en, rela = model.extract_entities_and_relationships(query)
+    print(en)
