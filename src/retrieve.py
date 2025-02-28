@@ -111,10 +111,19 @@ def find_closest_entities(entities, node_mapping):
     return results
 
 
+def loss_function(reconstructed, edge_index):
+        # Binary cross-entropy loss for adjacency reconstruction
+        # Một tensor toàn giá trị 1 với chiều dài bằng số lượng edges (M) trong đồ thị.
+        target = torch.ones(edge_index.size(1))  # All edges exist
+        # Sự khác biệt giữa logits dự đoán (reconstructed) và các giá trị thực (target).
+        return F.binary_cross_entropy_with_logits(reconstructed, target)
+
+
 class Retrieve():
     def __init__(self):
         pass
-    def retrieve_infomation(self, query):
+    
+    def retrieve_infomation(self, query, k=20):
         node_mapping, edge_list, unique_relationship_types = get_graph_data()
         # Create a mapping for edge names to indices
         edge_name_to_index = {name: idx for idx, name in enumerate(set(edge[2] for edge in edge_list))}
@@ -144,18 +153,36 @@ class Retrieve():
         train_edge_index = edge_index[:, train_indices]
         val_edge_index = edge_index[:, val_indices]
 
-        # Step 2: Create Data objects for training and validation
+ 
         train_data = Data(x=features, edge_index=train_edge_index)
         val_data = Data(x=features, edge_index=val_edge_index)
 
         target = torch.ones(edge_index.size(1))
         
-        # Step 4: Initialize the model
+
         input_dim = features.size(1)
         hidden_dim = 16
         embedding_dim = 8
         model = GAE(input_dim, hidden_dim, embedding_dim)
-        model.load_state_dict(torch.load('gae.torch'))
+        try:
+            model.load_state_dict(torch.load('gae.torch'))
+        except:
+            optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+
+            model.train()
+            for epoch in range(200):
+                # Training phase
+                optimizer.zero_grad()
+                embeddings, reconstructed = model(train_data.x, train_data.edge_index)
+                train_loss = loss_function(reconstructed, train_data.edge_index)
+                train_loss.backward()
+                optimizer.step()
+
+                # Validation phase
+                model.eval()
+                with torch.no_grad():
+                    val_embeddings, val_reconstructed = model(val_data.x, val_data.edge_index)
+                    val_loss = loss_function(val_reconstructed, val_data.edge_index)
 
 
         llm = LLM()
@@ -184,11 +211,8 @@ class Retrieve():
         # Normalize node embeddings
         node_embeddings_norm = F.normalize(embeddings, p=2, dim=1)
 
-        # Step 3: Aggregate and analyze results for each matched entity
-        K = 20  # Number of top similar nodes to retrieve
-
         for query_entity, match_id, match_name, score in matches:
-            print(f"\nTop-{K} similar nodes for '{query_entity}' (Matched Node: {match_name}):")
+            print(f"\nTop-{k} similar nodes for '{query_entity}' (Matched Node: {match_name}):")
             query_embedding = embeddings[match_id]
             query_embedding = F.normalize(query_embedding, p=2, dim=0)
 
@@ -196,7 +220,7 @@ class Retrieve():
             similarity_scores = torch.matmul(query_embedding.unsqueeze(0), node_embeddings_norm.T).squeeze()
 
             # Retrieve Top-K similar nodes
-            top_k_indices = torch.topk(similarity_scores, K).indices
+            top_k_indices = torch.topk(similarity_scores, k).indices
 
             for idx in top_k_indices:
                 similar_node_id = idx.item()

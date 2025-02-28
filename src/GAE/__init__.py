@@ -1,1 +1,1 @@
-from .model_gae import *
+from .model import *

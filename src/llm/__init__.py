@@ -1,1 +1,1 @@
-from .model_llm import *
+from .model import *
