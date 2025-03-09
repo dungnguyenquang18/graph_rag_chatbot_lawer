@@ -6,9 +6,7 @@ import random
 from rapidfuzz import process  # For fuzzy matching
 from collections import deque
 from gae import GAE
-import re
 import google.generativeai as genai
-import time
 import os
 from dotenv import load_dotenv
 from llm import LLM
@@ -42,19 +40,7 @@ def get_graph_data():
         return node_names, edge_list, unique_relationship_types
 
 def find_indirect_connection(edge_list, node_mapping, start, target, max_depth=10):
-    """
-    Find indirect connections between two nodes using BFS.
 
-    Parameters:
-        edge_list (list): List of edges as (source, target, relationship).
-        node_mapping (dict): Mapping of node IDs to node names.
-        start (int): The starting node ID.
-        target (int): The target node ID.
-        max_depth (int): Maximum depth to explore for indirect connections.
-
-    Returns:
-        list: A list of paths from start to target.
-    """
     # Build graph as adjacency list: {node: [(neighbor, relationship)]}
     graph = {}
     for src, tgt, rel in edge_list:
@@ -164,44 +150,19 @@ class Retrieve():
         hidden_dim = 16
         embedding_dim = 8
         model = GAE(input_dim, hidden_dim, embedding_dim)
-        try:
-            model.load_state_dict(torch.load('gae.torch'))
-        except:
-            optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-
-            model.train()
-            for epoch in range(200):
-                # Training phase
-                optimizer.zero_grad()
-                embeddings, reconstructed = model(train_data.x, train_data.edge_index)
-                train_loss = loss_function(reconstructed, train_data.edge_index)
-                train_loss.backward()
-                optimizer.step()
-
-                # Validation phase
-                model.eval()
-                with torch.no_grad():
-                    val_embeddings, val_reconstructed = model(val_data.x, val_data.edge_index)
-                    val_loss = loss_function(val_reconstructed, val_data.edge_index)
-
-
+        model.load_state_dict(torch.load('model.pth'))
         llm = LLM()
-        
-        
         entities, _ = llm.extract_entities_and_relationships(query)
         
-            
-        # Input: List of entities extracted from the query
         query_entities = entities  # Replace with your entities
 
-        # Step 1: Find the closest matching nodes for all query entities
         matches = find_closest_entities(query_entities, node_mapping)
 
         print("Closest matches for query entities:")
         for query_entity, match_id, match_name, score in matches:
             print(f"Query: '{query_entity}' -> Match: '{match_name}' (Node ID: {match_id}) with score {score:.2f}")
 
-        # Step 2: Use embeddings to find similar nodes for each matched entity
+
         model.eval()
         with torch.no_grad():
             embeddings, _ = model(train_data.x, train_data.edge_index)

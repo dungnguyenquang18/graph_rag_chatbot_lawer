@@ -4,12 +4,9 @@ import torch.nn.functional as F
 from torch_geometric.data import Data
 import random
 from rapidfuzz import process  # For fuzzy matching
-import torch.nn.functional as F
 from collections import deque
 from graph_rag_for_review_film_chatbot.src.gae.model import GAE
-import re
 import google.generativeai as genai
-import time
 import os
 from dotenv import load_dotenv
 load_dotenv()

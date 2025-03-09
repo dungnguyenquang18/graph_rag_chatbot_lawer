@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 from torch_geometric.data import Data
 from torch_geometric.nn import GCNConv
-import random
+
 
 class GAE(torch.nn.Module):
     def __init__(self, input_dim, hidden_dim, embedding_dim):
